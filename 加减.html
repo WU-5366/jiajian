@@ -1,0 +1,1203 @@
+#define _CRT_SECURE_NO_WARNINGS  //在VS中使用 避免出现scanf printf不安全的警告
+#include<stdio.h>
+#include<stdlib.h>
+#include<time.h>
+#include<windows.h>
+#define TITLE_NUM 10	//每次测试的出题量
+//#define MAX_NUM 20		//出的题目数字范围
+
+/*********题目结构体************/
+typedef struct _Title
+{
+	int opt_num1;//操作数1
+	int opt_num2;//操作数2
+	int opt_num3;//操作数3
+	int opt_ch1;//操作符0代表+   1代表-
+	int opt_ch2;//操作符0代表+   1代表-
+	int style;//0代表选择题     1代表填空题
+	int correct_ans;//如果是选择保存的是正确选项 如果是填空保存正确答案
+	int user_ans;//记录用户的答案	
+	int range, ten_cho, twenty_cho;
+	int choice[4];//随机生成的4个答案 不重复 其中一个为正确答案
+}Title;
+int max_num = 20;	//出的题目数字范围
+int range;			//0代表10以内     1代表20以内 
+int ten_choice;		//10以内加减法方法
+int twenty_choice;	//20以内加减法方法
+/********主菜单*********/
+/*choice记录用户的选择*/
+/*返回值:返回用户的选择*/
+int Main_Menu()
+{
+	int choice;
+	system("cls");//清空屏幕输出
+	printf("1:答题\n");
+	printf("2:查阅\n");
+	printf("3:错题\n");
+	printf("4:试卷\n");
+	printf("0:退出\n");
+	printf("请输入选项:");
+	scanf("%d", &choice);//获取选择
+	while (choice < 0 || choice>4)//判断输入的选择是否在0--4之间  不是的话重新输入
+	{
+		printf("请重新输入选项:");
+		scanf("%d", &choice);
+	}
+	return choice;//返回选择
+}
+/**********生成选择题*********/
+/*参数1 Title title[]:已经答过的题目数组，记录新生成的题目*/
+/*参数2 int n: 已答题的数量，即数组当前长度*/
+void Creat_Choice_Title(Title title[], int n)
+{
+	int i, j;//循环迭代使用
+	title[n].style = 0;//题目类型为选择题
+	title[n].range = range;
+	title[n].ten_cho = ten_choice;
+	title[n].twenty_cho = twenty_choice;
+	do
+	{
+		title[n].opt_num1 = rand() % max_num;//随机生成操作数1
+		title[n].opt_num2 = rand() % max_num;//随机生成操作数2
+		if((range == 0 && ten_choice == 1) || twenty_choice == 2)//如果是十以内的加法
+			title[n].opt_ch1 = 0;		
+		else if((range == 0 && ten_choice == 2) || twenty_choice == 3 || twenty_choice == 4)
+			title[n].opt_ch1 = 1;
+		else
+			title[n].opt_ch1 = rand() % 2;//随机生成操作符
+		switch (title[n].opt_ch1)//根据操作符 生成正确答案等
+		{
+		case 0://加法的情况
+			if (title[n].opt_num1 + title[n].opt_num2 <= max_num)//确保结果在10以内
+			{
+				title[n].correct_ans = title[n].opt_num1 + title[n].opt_num2;//得到正确答案
+				for (i = 0; i < 4; i++)//随机生成4个选项
+				{
+					title[n].choice[i] = rand() % max_num;
+					while (title[n].choice[i] == title[n].correct_ans)//确保随机生成的选项与答案不重复
+					{
+						title[n].choice[i] = rand() % max_num;//重复就重新生成
+					}
+					for (j = 0; j < i; j++)//确保和之前已经生成的选项不重复
+					{
+						if (title[n].choice[i] == title[n].choice[j])//重复也重新生成
+						{
+								i--;
+							break;
+						}
+					}
+				}
+				title[n].correct_ans = rand() % 4;//随机选择一个选项作为正确答案
+				title[n].choice[title[n].correct_ans] = title[n].opt_num1 + title[n].opt_num2;//把答案放在正确选项的位置
+				return;
+			}
+			break;
+		case 1://减法的情况
+			if (title[n].opt_num1 - title[n].opt_num2 >= 0)//确保答案大于0
+			{
+				title[n].correct_ans = title[n].opt_num1 - title[n].opt_num2;//获取正确答案
+				for (i = 0; i < 4; i++)//随机生成4个选项
+				{
+					title[n].choice[i] = rand() % max_num;
+					while (title[n].choice[i] == title[n].correct_ans)//确保随机生成的选项与答案不重复
+					{
+						title[n].choice[i] = rand() % max_num;//重复就重新生成
+					}
+					for (j = 0; j < i; j++)//确保和之前已经生成的选项不重复
+					{
+						if (title[n].choice[i] == title[n].choice[j])//重复也重新生成
+						{
+							i--;
+							break;
+						}
+					}
+				}
+				title[n].correct_ans = rand() % 4;//随机选择一个选项作为正确答案
+				title[n].choice[title[n].correct_ans] = title[n].opt_num1 - title[n].opt_num2;//把答案放在正确选项的位置
+				return;
+			}
+			break;
+		}
+	} while (1);
+}
+/**********生成选择题（三个数加减混合）*********/
+/*参数1 Title title[]:已经答过的题目数组，记录新生成的题目*/
+/*参数2 int n: 已答题的数量，即数组当前长度*/
+void Creat_Mix_Choice_Title(Title title[], int n)
+{
+	int i, j, s;//循环迭代使用
+	title[n].style = 0;//题目类型为选择题
+	title[n].range = range;
+	title[n].ten_cho = ten_choice;
+	title[n].twenty_cho = twenty_choice;
+	do
+	{
+		title[n].opt_num1 = rand() % max_num;//随机生成操作数1
+		title[n].opt_num2 = rand() % max_num;//随机生成操作数2
+		title[n].opt_num3 = rand() % max_num;//随机生成操作数3
+		if (rand() % 4 == 0)// 随机选择加减号
+		{  
+			title[n].opt_ch1 = 0;
+			title[n].opt_ch2 = 0;
+			s = 1;
+		} 
+		else if(rand() % 4 == 1)
+		{
+			title[n].opt_ch1 = 0;
+			title[n].opt_ch2 = 1;
+			s = 2;
+		}
+		else if(rand() % 4 == 2)
+		{
+			title[n].opt_ch1 = 1;
+			title[n].opt_ch2 = 0;
+			s = 3;
+		}
+		else
+		{
+			title[n].opt_ch1 = 1;
+			title[n].opt_ch2 = 1;
+			s = 4;
+		}
+
+
+		switch (s)//根据操作符 生成正确答案等
+		{
+		case 1://++的情况
+			if (title[n].opt_num1 + title[n].opt_num2 + title[n].opt_num3 <= max_num)//确保结果在max_num以内
+			{
+				title[n].correct_ans = title[n].opt_num1 + title[n].opt_num2 + title[n].opt_num3;//得到正确答案
+				for (i = 0; i < 4; i++)//随机生成4个选项
+				{
+					title[n].choice[i] = rand() % max_num;
+					while (title[n].choice[i] == title[n].correct_ans)//确保随机生成的选项与答案不重复
+					{
+						title[n].choice[i] = rand() % max_num;//重复就重新生成
+					}
+					for (j = 0; j < i; j++)//确保和之前已经生成的选项不重复
+					{
+						if (title[n].choice[i] == title[n].choice[j])//重复也重新生成
+						{
+								i--;
+							break;
+						}
+					}
+				}
+				title[n].correct_ans = rand() % 4;//随机选择一个选项作为正确答案
+				title[n].choice[title[n].correct_ans] = title[n].opt_num1 + title[n].opt_num2 + title[n].opt_num3;//把答案放在正确选项的位置
+				return;
+			}
+			break;
+		case 2://+-的情况
+			if (title[n].opt_num1 + title[n].opt_num2 - title[n].opt_num3 >= 0 && title[n].opt_num1 + title[n].opt_num2 - title[n].opt_num3 <= max_num)//确保答案大于0
+			{
+				title[n].correct_ans = title[n].opt_num1 + title[n].opt_num2 - title[n].opt_num3;//获取正确答案
+				for (i = 0; i < 4; i++)//随机生成4个选项
+				{
+					title[n].choice[i] = rand() % max_num;
+					while (title[n].choice[i] == title[n].correct_ans)//确保随机生成的选项与答案不重复
+					{
+						title[n].choice[i] = rand() % max_num;//重复就重新生成
+					}
+					for (j = 0; j < i; j++)//确保和之前已经生成的选项不重复
+					{
+						if (title[n].choice[i] == title[n].choice[j])//重复也重新生成
+						{
+							i--;
+							break;
+						}
+					}
+				}
+				title[n].correct_ans = rand() % 4;//随机选择一个选项作为正确答案
+				title[n].choice[title[n].correct_ans] = title[n].opt_num1 + title[n].opt_num2 - title[n].opt_num3;//把答案放在正确选项的位置
+				return;
+			}
+			break;
+			case 3://-+的情况
+				if (title[n].opt_num1 - title[n].opt_num2 + title[n].opt_num3 >= 0 && title[n].opt_num1 - title[n].opt_num2 + title[n].opt_num3 <= max_num)//确保答案大于0
+				{
+					title[n].correct_ans = title[n].opt_num1 - title[n].opt_num2 + title[n].opt_num3;//获取正确答案
+					for (i = 0; i < 4; i++)//随机生成4个选项
+					{
+						title[n].choice[i] = rand() % max_num;
+						while (title[n].choice[i] == title[n].correct_ans)//确保随机生成的选项与答案不重复
+						{
+							title[n].choice[i] = rand() % max_num;//重复就重新生成
+						}
+						for (j = 0; j < i; j++)//确保和之前已经生成的选项不重复
+						{
+							if (title[n].choice[i] == title[n].choice[j])//重复也重新生成
+							{
+								i--;
+								break;
+							}
+						}
+					}
+					title[n].correct_ans = rand() % 4;//随机选择一个选项作为正确答案
+					title[n].choice[title[n].correct_ans] = title[n].opt_num1 - title[n].opt_num2 + title[n].opt_num3;//把答案放在正确选项的位置
+					return;
+				}
+			case 4://--的情况
+				if (title[n].opt_num1 - title[n].opt_num2 - title[n].opt_num3 >= 0 && title[n].opt_num1 - title[n].opt_num2 - title[n].opt_num3 <= max_num)//确保答案大于0
+				{
+					title[n].correct_ans = title[n].opt_num1 - title[n].opt_num2 - title[n].opt_num3;//获取正确答案
+					for (i = 0; i < 4; i++)//随机生成4个选项
+					{
+						title[n].choice[i] = rand() % max_num;
+						while (title[n].choice[i] == title[n].correct_ans)//确保随机生成的选项与答案不重复
+						{
+							title[n].choice[i] = rand() % max_num;//重复就重新生成
+						}
+						for (j = 0; j < i; j++)//确保和之前已经生成的选项不重复
+						{
+							if (title[n].choice[i] == title[n].choice[j])//重复也重新生成
+							{
+								i--;
+								break;
+							}
+						}
+					}
+					title[n].correct_ans = rand() % 4;//随机选择一个选项作为正确答案
+					title[n].choice[title[n].correct_ans] = title[n].opt_num1 - title[n].opt_num2 - title[n].opt_num3;//把答案放在正确选项的位置
+					return;
+				}
+		}
+	} while (1);
+}
+void Creat_Not_Carry_Choice_Title(Title title[], int n)
+{
+	int i, j;
+	title[n].style = 0;
+	title[n].range = range;
+	title[n].ten_cho = ten_choice;
+	title[n].twenty_cho = twenty_choice;
+	title[n].opt_ch1 = 0;
+	do
+	{
+		title[n].opt_num1 = rand() % max_num;
+		if(title[n].opt_num1 >= 10)
+			title[n].opt_num2 = rand() % (20 - title[n].opt_num1);
+		else
+			title[n].opt_num2 = rand() % (10 - title[n].opt_num1 % 10) + 10;
+
+		int result = title[n].opt_num1 + title[n].opt_num2; 
+		if(result <= max_num && result >= 0)
+		{
+			title[n].correct_ans = result;//得到正确答案
+			for (i = 0; i < 4; i++)//随机生成4个选项
+			{
+				title[n].choice[i] = rand() % max_num;
+				while (title[n].choice[i] == title[n].correct_ans)//确保随机生成的选项与答案不重复
+				{
+					title[n].choice[i] = rand() % max_num;//重复就重新生成
+				}
+				for (j = 0; j < i; j++)//确保和之前已经生成的选项不重复
+				{
+					if (title[n].choice[i] == title[n].choice[j])//重复也重新生成
+					{
+							i--;
+						break;
+					}
+				}
+			}
+			title[n].correct_ans = rand() % 4;//随机选择一个选项作为正确答案
+			title[n].choice[title[n].correct_ans] = result;//把答案放在正确选项的位置
+			break;
+		}		
+	} while (1);
+}
+void Creat_Carry_Choice_Title(Title title[], int n)
+{
+	int i, j;//循环迭代使用
+	title[n].style = 0;//题目类型为选择题
+	title[n].range = range;
+	title[n].ten_cho = ten_choice;
+	title[n].twenty_cho = twenty_choice;
+	title[n].opt_ch1 = 0;
+	do
+	{
+		title[n].opt_num1 = rand() % max_num;//随机生成操作数1
+		title[n].opt_num2 = rand() % max_num;//随机生成操作数2
+		int carry = (title[n].opt_num1 % 10 + title[n].opt_num2 % 10) / 10;  // 判断是否需要进位
+        if (carry == 0) continue;  // 不需要进位则重新生成        
+        int result = title[n].opt_num1 + title[n].opt_num2;  // 进位相加运算		
+		if(result <= max_num && result >= 0)
+		{
+			title[n].correct_ans = result;//得到正确答案
+			for (i = 0; i < 4; i++)//随机生成4个选项
+			{
+				title[n].choice[i] = rand() % max_num;
+				while (title[n].choice[i] == title[n].correct_ans)//确保随机生成的选项与答案不重复
+				{
+					title[n].choice[i] = rand() % max_num;//重复就重新生成
+				}
+				for (j = 0; j < i; j++)//确保和之前已经生成的选项不重复
+				{
+					if (title[n].choice[i] == title[n].choice[j])//重复也重新生成
+					{
+							i--;
+						break;
+					}
+				}
+			}
+			title[n].correct_ans = rand() % 4;//随机选择一个选项作为正确答案
+			title[n].choice[title[n].correct_ans] = result;//把答案放在正确选项的位置
+			break;
+		}		
+	} while (1);
+
+}
+/**********生成选择题（不退位减法）*********/
+/*参数1 Title title[]:已经答过的题目数组，记录新生成的题目*/
+/*参数2 int n: 已答题的数量，即数组当前长度*/
+void Creat_Not_Borrow_Choice_Title(Title title[], int n)
+{
+	int i, j;//循环迭代使用
+	title[n].style = 0;//题目类型为选择题
+	title[n].range = range;
+	title[n].ten_cho = ten_choice;
+	title[n].twenty_cho = twenty_choice;
+	title[n].opt_ch1 = 1;
+	do
+	{
+		title[n].opt_num1 = rand() % max_num + 1; // 随机生成1-20之间的数
+        title[n].opt_num2 = rand() % title[n].opt_num1 + 1; // b必须小于等于a，且不能为0     	
+		int result = title[n].opt_num1 - title[n].opt_num2;  // 不退位相减运算
+		if(result <= max_num && result >= 0 && (title[n].opt_num1 % 10) >= (title[n].opt_num2 % 10))
+		{
+			title[n].correct_ans = result;//得到正确答案
+			for (i = 0; i < 4; i++)//随机生成4个选项
+			{
+				title[n].choice[i] = rand() % max_num;
+				while (title[n].choice[i] == title[n].correct_ans)//确保随机生成的选项与答案不重复
+				{
+					title[n].choice[i] = rand() % max_num;//重复就重新生成
+				}
+				for (j = 0; j < i; j++)//确保和之前已经生成的选项不重复
+				{
+					if (title[n].choice[i] == title[n].choice[j])//重复也重新生成
+					{
+							i--;
+						break;
+					}
+				}
+			}
+			title[n].correct_ans = rand() % 4;//随机选择一个选项作为正确答案
+			title[n].choice[title[n].correct_ans] = result;//把答案放在正确选项的位置
+			break;
+		}		
+	} while (1);
+
+}
+/**********生成选择题（退位相减）*********/
+/*参数1 Title title[]:已经答过的题目数组，记录新生成的题目*/
+/*参数2 int n: 已答题的数量，即数组当前长度*/
+void Creat_Borrow_Choice_Title(Title title[], int n)
+{
+	int i, j;//循环迭代使用
+	title[n].style = 0;//题目类型为选择题
+	title[n].range = range;
+	title[n].ten_cho = ten_choice;
+	title[n].twenty_cho = twenty_choice;
+	title[n].opt_ch1 = 1;
+	do
+	{
+		title[n].opt_num1 = rand() % max_num + 1; // 随机生成1-20之间的数
+        title[n].opt_num2 = rand() % title[n].opt_num1 + 1; // b必须小于等于a，且不能为0     	
+		int result = title[n].opt_num1 - title[n].opt_num2;  // 不退位相减运算
+		if(result > 9 || (title[n].opt_num1 % 10) >= (title[n].opt_num2 % 10) || result == 0) continue;
+		if(result <= max_num && result > 0)
+		{
+			title[n].correct_ans = result;//得到正确答案
+			for (i = 0; i < 4; i++)//随机生成4个选项
+			{
+				title[n].choice[i] = rand() % max_num;
+				while (title[n].choice[i] == title[n].correct_ans)//确保随机生成的选项与答案不重复
+				{
+					title[n].choice[i] = rand() % max_num;//重复就重新生成
+				}
+				for (j = 0; j < i; j++)//确保和之前已经生成的选项不重复
+				{
+					if (title[n].choice[i] == title[n].choice[j])//重复也重新生成
+					{
+							i--;
+						break;
+					}
+				}
+			}
+			title[n].correct_ans = rand() % 4;//随机选择一个选项作为正确答案
+			title[n].choice[title[n].correct_ans] = result;//把答案放在正确选项的位置
+			break;
+		}		
+	} while (1);
+
+}
+int Get_User_Choice(Title title[], int n, int i)
+{
+	int j;//用于迭代
+	char choice;//获取 用户选择
+	system("cls");//清屏
+	printf("第%d题: ", i + 1);//输出题号
+	printf("%d ", title[n + i].opt_num1);//输出操作数1
+	switch (title[n + i].opt_ch1)//输出符号
+	{
+	case 0:printf("+ "); break;
+	case 1:printf("- "); break;
+	}
+	printf("%d = \n", title[n + i].opt_num2);//输出操作数2
+	for (j = 0; j < 4; j++)//打印4个选项
+	{
+		printf("%c:%d    ", 'A' + j, title[n + i].choice[j]);
+	}
+	printf("\n");
+	printf("请输入选择:");
+	fflush(stdin);//清空缓冲区
+	scanf("%c", &choice);//获取选择
+	choice = toupper(choice);//转换成大写
+	while (choice < 'A' || choice > 'D')//判断输入数据的范围 不在A--D则重新输入
+	{
+		printf("请重新输入选择:");
+		fflush(stdin);
+		scanf("%c", &choice);
+		choice = toupper(choice);
+	}
+	title[n + i].user_ans = choice - 'A';//记录用户的选择
+	if (title[n + i].user_ans == title[n + i].correct_ans)//如果答对了
+	{
+		printf("恭喜你,答对了!\n");
+		system("pause");
+		return 1;
+	}
+	printf("答错了，正确答案为:%c!\n", title[n + i].correct_ans + 'A');//如果答错了
+	system("pause");
+	return 0;
+}
+int Get_User_Mix_Choice(Title title[], int n, int i)
+{
+	int j;//用于迭代
+	char choice;//获取 用户选择
+	system("cls");//清屏
+	printf("第%d题: ", i + 1);//输出题号
+	printf("%d ", title[n + i].opt_num1);//输出操作数1
+	switch (title[n + i].opt_ch1)//输出符号
+	{
+	case 0:printf("+ "); break;
+	case 1:printf("- "); break;
+	}
+	printf("%d ", title[n + i].opt_num2);//输出操作数2
+	switch (title[n + i].opt_ch2)//输出符号
+	{
+	case 0:printf("+ "); break;
+	case 1:printf("- "); break;
+	}
+	printf("%d = \n", title[n + i].opt_num3);//输出操作数3
+	for (j = 0; j < 4; j++)//打印4个选项
+	{
+		printf("%c:%d    ", 'A' + j, title[n + i].choice[j]);
+	}
+	printf("\n");
+	printf("请输入选择:");
+	fflush(stdin);//清空缓冲区
+	scanf("%c", &choice);//获取选择
+	choice = toupper(choice);//转换成大写
+	while (choice < 'A' || choice > 'D')//判断输入数据的范围 不在A--D则重新输入
+	{
+		printf("请重新输入选择:");
+		fflush(stdin);
+		scanf("%c", &choice);
+		choice = toupper(choice);
+	}
+	title[n + i].user_ans = choice - 'A';//记录用户的选择
+	if (title[n + i].user_ans == title[n + i].correct_ans)//如果答对了
+	{
+		printf("恭喜你,答对了!\n");
+		system("pause");
+		return 1;
+	}
+	printf("答错了，正确答案为:%c!\n", title[n + i].correct_ans + 'A');//如果答错了
+	system("pause");
+	return 0;
+}
+int Start_Choice(Title title[], int n)
+{
+	int i;
+	int count = 0;//记录回答正确的数量
+	clock_t start, end;
+	start = clock();
+	if(ten_choice == 3 || twenty_choice == 5)//三个数混合
+	{
+		for (i = 0; i < TITLE_NUM; i++)//循环生成题目 回答题目
+		{
+			Creat_Mix_Choice_Title(title, n + i);//生成题目
+			count += Get_User_Mix_Choice(title, n, i);//回答题目
+		}		
+	}
+	else if(ten_choice == 1 || ten_choice == 2)//两个数的加减法
+	{
+		for (i = 0; i < TITLE_NUM; i++)//循环生成题目 回答题目
+		{
+			Creat_Choice_Title(title, n + i);//生成题目
+			count += Get_User_Choice(title, n, i);//回答题目
+		}
+	}
+	else if(twenty_choice == 1)//不进位加法
+	{
+		for (i = 0; i < TITLE_NUM; i++)//循环生成题目 回答题目
+		{
+			Creat_Not_Carry_Choice_Title(title, n + i);//生成题目
+			count += Get_User_Choice(title, n, i);//回答题目
+		}
+	}
+	else if(twenty_choice == 2)//进位加法
+	{
+		for (i = 0; i < TITLE_NUM; i++)//循环生成题目 回答题目
+		{
+			Creat_Carry_Choice_Title(title, n + i);//生成题目
+			count += Get_User_Choice(title, n, i);//回答题目
+		}
+	}
+	else if(twenty_choice == 3)//不退位减法
+	{
+		for (i = 0; i < TITLE_NUM; i++)//循环生成题目 回答题目
+		{
+			Creat_Not_Borrow_Choice_Title(title, n + i);
+			count += Get_User_Choice(title, n, i);//回答题目
+		}
+	}
+	else if(twenty_choice == 4)//退位减法
+	{
+		for (i = 0; i < TITLE_NUM; i++)//循环生成题目 回答题目
+		{
+			Creat_Borrow_Choice_Title(title, n + i);
+			count += Get_User_Choice(title, n, i);//回答题目
+		}
+	}	
+	end = clock();
+	printf("总用时:%.2f秒\n", (double)(end - start) / CLOCKS_PER_SEC);
+	system("pause");
+	return count;//返回回答正确的数量
+}
+void Creat_Fill_Title(Title title[], int n)
+{
+	title[n].style = 1;//题目类型为填空题
+	title[n].range = range;
+	title[n].ten_cho = ten_choice;
+	title[n].twenty_cho = twenty_choice;
+	do
+	{
+		title[n].opt_num1 = rand() % max_num;//随机生成操作数1
+		title[n].opt_num2 = rand() % max_num;//随机生成操作数2
+		
+		if((range == 0 && ten_choice == 1) || twenty_choice == 2)
+			title[n].opt_ch1 = 0;		
+		else if((range == 0 && ten_choice == 2) || twenty_choice == 3 || twenty_choice == 4)
+			title[n].opt_ch1 = 1;
+		else
+			title[n].opt_ch1 = rand() % 2;//随机生成操作符
+		switch (title[n].opt_ch1)//根据操作符 生成正确答案等
+		{
+		case 0://加法的情况
+			if (title[n].opt_num1 + title[n].opt_num2 <= max_num)//确保结果在max_num以内
+			{
+				title[n].correct_ans = title[n].opt_num1 + title[n].opt_num2;//得到正确答案
+				return;
+			}
+			break;
+		case 1://减法的情况
+			if (title[n].opt_num1 - title[n].opt_num2 >= 0)//确保答案大于0
+			{
+				title[n].correct_ans = title[n].opt_num1 - title[n].opt_num2;//获取正确答案
+				return;
+			}
+			break;
+		}
+	} while (1);
+}
+void Creat_Mix_Fill_Title(Title title[], int n)
+{
+	int s;
+	title[n].style = 1;//题目类型为填空题
+	title[n].range = range;
+	title[n].ten_cho = ten_choice;
+	title[n].twenty_cho = twenty_choice;
+	do
+	{
+		title[n].opt_num1 = rand() % max_num;//随机生成操作数1
+		title[n].opt_num2 = rand() % max_num;//随机生成操作数2
+		title[n].opt_num3 = rand() % max_num;//随机生成操作数3
+		//title[n].opt_ch1 = rand() % 2;//随机生成操作符
+		if (rand() % 4 == 0)// 随机选择加减号
+		{  
+			title[n].opt_ch1 = 0;
+			title[n].opt_ch2 = 0;
+			s = 1;
+		} 
+		else if(rand() % 4 == 1)
+		{
+			title[n].opt_ch1 = 0;
+			title[n].opt_ch2 = 1;
+			s = 2;
+		}
+		else if(rand() % 4 == 2)
+		{
+			title[n].opt_ch1 = 1;
+			title[n].opt_ch2 = 0;
+			s = 3;
+		}
+		else
+		{
+			title[n].opt_ch1 = 1;
+			title[n].opt_ch2 = 1;
+			s = 4;
+		}
+		switch (s)//根据操作符 生成正确答案等
+		{
+		case 1://++的情况
+			if (title[n].opt_num1 + title[n].opt_num2 + title[n].opt_num3 <= max_num)//确保结果在max_num以内
+			{
+				title[n].correct_ans = title[n].opt_num1 + title[n].opt_num2 + title[n].opt_num3;//得到正确答案				
+				return;
+			}
+			break;
+		case 2://+-的情况
+			if (title[n].opt_num1 + title[n].opt_num2 - title[n].opt_num3 >= 0 && title[n].opt_num1 + title[n].opt_num2 - title[n].opt_num3 <= max_num)//确保答案大于0
+			{
+				title[n].correct_ans = title[n].opt_num1 + title[n].opt_num2 - title[n].opt_num3;//获取正确答案	
+				return;
+			}
+			break;
+		case 3://-+的情况
+			if (title[n].opt_num1 - title[n].opt_num2 + title[n].opt_num3 >= 0 && title[n].opt_num1 - title[n].opt_num2 + title[n].opt_num3 <= max_num)//确保答案大于0
+			{
+				title[n].correct_ans = title[n].opt_num1 - title[n].opt_num2 + title[n].opt_num3;//获取正确答案
+				return;
+			}
+			break;
+		case 4://--的情况
+			if (title[n].opt_num1 - title[n].opt_num2 - title[n].opt_num3 >= 0 && title[n].opt_num1 - title[n].opt_num2 - title[n].opt_num3 <= max_num)//确保答案大于0
+			{
+				title[n].correct_ans = title[n].opt_num1 - title[n].opt_num2 - title[n].opt_num3;//获取正确答案
+				return;
+			}
+			break;
+		}
+	} while (1);
+}
+/**********生成填空题（不进位加法）*********/
+/*参数1 Title title[]:已经答过的题目数组，记录新生成的题目*/
+/*参数2 int n: 已答题的数量，即数组当前长度*/
+void Creat_Not_Carry_Fill_Title(Title title[], int n)
+{
+	title[n].style = 1;//题目类型为填空题
+	title[n].range = range;
+	title[n].ten_cho = ten_choice;
+	title[n].twenty_cho = twenty_choice;
+	title[n].opt_ch1 = 0;
+	do
+	{
+		title[n].opt_num1 = rand() % max_num;//随机生成操作数1
+		if(title[n].opt_num1 >= 10)
+			title[n].opt_num2 = rand() % (20 - title[n].opt_num1);
+		else
+			title[n].opt_num2 = rand() % (10 - title[n].opt_num1 % 10) + 10;//随机生成操作数2
+		int result = title[n].opt_num1 + title[n].opt_num2;  // 不进位相加运算
+		if(result <= max_num && result >= 0)
+		{
+			title[n].correct_ans = result;//得到正确答案
+			break;
+		}		
+	} while (1);
+}
+/**********生成填空题（进位加法）*********/
+/*参数1 Title title[]:已经答过的题目数组，记录新生成的题目*/
+/*参数2 int n: 已答题的数量，即数组当前长度*/
+void Creat_Carry_Fill_Title(Title title[], int n)
+{
+	title[n].style = 1;//题目类型为填空题
+	title[n].range = range;
+	title[n].ten_cho = ten_choice;
+	title[n].twenty_cho = twenty_choice;
+	do
+	{
+		title[n].opt_num1 = rand() % max_num;//随机生成操作数1
+		title[n].opt_num2 = rand() % max_num;//随机生成操作数2
+		int carry = (title[n].opt_num1 % 10 + title[n].opt_num2 % 10) / 10;  // 判断是否需要进位
+        if (carry == 0) continue;  // 不需要进位则重新生成        	
+		int result = title[n].opt_num1 + title[n].opt_num2;  // 进位相加运算
+		if(result <= max_num && result >= 0)
+		{
+			title[n].correct_ans = result;//得到正确答案
+			break;
+		}		
+	} while (1);
+}
+/**********生成填空题（不退位减法）*********/
+/*参数1 Title title[]:已经答过的题目数组，记录新生成的题目*/
+/*参数2 int n: 已答题的数量，即数组当前长度*/
+void Creat_Not_Borrow_Fill_Title(Title title[], int n)
+{
+	title[n].style = 1;//题目类型为填空题
+	title[n].range = range;
+	title[n].ten_cho = ten_choice;
+	title[n].twenty_cho = twenty_choice;
+	title[n].opt_ch1 = 1;
+	do
+	{
+		title[n].opt_num1 = rand() % max_num + 1; // 随机生成1-20之间的数
+        title[n].opt_num2 = rand() % title[n].opt_num1 + 1; // b必须小于等于a，且不能为0     	
+		int result = title[n].opt_num1 - title[n].opt_num2;  // 不退位相减运算
+		if(result <= max_num && result >= 0 && (title[n].opt_num1 % 10) >= (title[n].opt_num2 % 10))
+		{
+			title[n].correct_ans = result;//得到正确答案
+			break;
+		}		
+	} while (1);
+}
+/**********生成填空题（退位减法）*********/
+/*参数1 Title title[]:已经答过的题目数组，记录新生成的题目*/
+/*参数2 int n: 已答题的数量，即数组当前长度*/
+void Creat_Borrow_Fill_Title(Title title[], int n)
+{
+	title[n].style = 1;//题目类型为填空题
+	title[n].range = range;
+	title[n].ten_cho = ten_choice;
+	title[n].twenty_cho = twenty_choice;
+	title[n].opt_ch1 = 1;
+	do
+	{
+		title[n].opt_num1 = rand() % max_num + 1; // 随机生成1-20之间的数
+        title[n].opt_num2 = rand() % title[n].opt_num1 + 1; // b必须小于等于a，且不能为0     	
+		int result = title[n].opt_num1 - title[n].opt_num2;  // 不退位相减运算
+		if(result > 9 || (title[n].opt_num1 % 10) >= (title[n].opt_num2 % 10) || result == 0) continue;
+		if(result <= max_num && result > 0)
+		{
+			title[n].correct_ans = result;//得到正确答案
+			break;
+		}		
+	} while (1);
+}
+/**********填空题获取用户的答案*********/
+/*参数1 Title title[]:已经答过的题目数组，记录新生成的题目*/
+/*参数2 int n: 即数组上次测试答题后的长度*/
+/*参数2 int i: 当前测试的第i+1题*/
+/*返回值:0代表该题答错  1代表回答正确*/
+int Get_User_Fill(Title title[], int n, int i)
+{
+	system("cls");//清屏
+	printf("第%d题: ", i + 1);//输出题号
+	printf("%d ", title[n + i].opt_num1);//输出操作数1
+	switch (title[n + i].opt_ch1)//输出符号
+	{
+	case 0:printf("+ "); break;
+	case 1:printf("- "); break;
+	}
+	printf("%d = \n", title[n + i].opt_num2);//输出操作数2
+	printf("请输入答案:");
+	fflush(stdin);//清空缓冲区
+	scanf("%d", &title[n + i].user_ans);
+	if (title[n + i].user_ans == title[n + i].correct_ans)//如果答对了
+	{
+		printf("恭喜你,答对了!\n");
+		system("pause");
+		return 1;
+	}
+	printf("答错了，正确答案为:%d!\n", title[n + i].correct_ans);//如果答错了
+	system("pause");
+	return 0;
+}
+/**********填空题获取用户的答案（三个数混合）*********/
+/*参数1 Title title[]:已经答过的题目数组，记录新生成的题目*/
+/*参数2 int n: 即数组上次测试答题后的长度*/
+/*参数2 int i: 当前测试的第i+1题*/
+/*返回值:0代表该题答错  1代表回答正确*/
+int Get_User_Mix_Fill(Title title[], int n, int i)
+{
+	system("cls");//清屏
+	printf("第%d题: ", i + 1);//输出题号
+	printf("%d ", title[n + i].opt_num1);//输出操作数1
+	switch (title[n + i].opt_ch1)//输出符号
+	{
+	case 0:printf("+ "); break;
+	case 1:printf("- "); break;
+	}
+	printf("%d ", title[n + i].opt_num2);//输出操作数2
+	switch (title[n + i].opt_ch2)//输出符号
+	{
+	case 0:printf("+ "); break;
+	case 1:printf("- "); break;
+	}
+	printf("%d = \n", title[n + i].opt_num3);//输出操作数3
+	printf("请输入答案:");
+	fflush(stdin);//清空缓冲区
+	scanf("%d", &title[n + i].user_ans);
+	if (title[n + i].user_ans == title[n + i].correct_ans)//如果答对了
+	{
+		printf("恭喜你,答对了!\n");
+		system("pause");
+		return 1;
+	}
+	printf("答错了，正确答案为:%d!\n", title[n + i].correct_ans);//如果答错了
+	system("pause");
+	return 0;
+}
+/**********用户开始回答填空题*********/
+/*参数1 Title title[]:已经答过的题目数组，记录新生成的题目*/
+/*参数2 int n: 即数组上次测试答题后的长度*/
+/*返回值:本次答题回答正确的题目数量*/
+int Start_Fill(Title title[], int n)
+{
+	int i = 0;
+	int count = 0;//记录回答正确的数量
+	clock_t start, end;
+	start = clock();
+	if(ten_choice == 3 || twenty_choice == 5)//三个数混合
+	{
+		for (i = 0; i < TITLE_NUM; i++)//循环生成题目 回答题目
+		{
+			Creat_Mix_Fill_Title(title, n + i);//生成题目
+			count += Get_User_Mix_Fill(title, n, i);//回答题目
+		}
+	}
+	else if(ten_choice == 1 || ten_choice == 2)//两个数的加减法
+	{
+		for (i = 0; i < TITLE_NUM; i++)//循环生成题目 回答题目
+		{
+			Creat_Fill_Title(title, n + i);//生成题目
+			count += Get_User_Fill(title, n, i);//回答题目
+		}
+	}
+	else if(twenty_choice == 1)//不进位加法
+	{
+		for (i = 0; i < TITLE_NUM; i++)//循环生成题目 回答题目
+		{
+			Creat_Not_Carry_Fill_Title(title, n + i);//生成题目
+			count += Get_User_Fill(title, n, i);//回答题目
+		}		
+	}
+	else if(twenty_choice == 2)//进位加法
+	{
+		for (i = 0; i < TITLE_NUM; i++)//循环生成题目 回答题目
+		{
+			Creat_Carry_Fill_Title(title, n + i);//生成题目
+			count += Get_User_Fill(title, n, i);//回答题目
+		}
+	}
+	else if(twenty_choice == 3)//不退位减法
+	{
+		for (i = 0; i < TITLE_NUM; i++)//循环生成题目 回答题目
+		{
+			Creat_Not_Borrow_Fill_Title(title, n + i);//生成题目
+			count += Get_User_Fill(title, n, i);//回答题目
+		}
+	}
+	else if(twenty_choice == 4)//退位减法
+	{
+		for (i = 0; i < TITLE_NUM; i++)//循环生成题目 回答题目
+		{
+			Creat_Borrow_Fill_Title(title, n + i);//生成题目
+			count += Get_User_Fill(title, n, i);//回答题目
+		}
+	}
+	end = clock();
+	printf("总用时:%.2f秒\n", (double)(end - start) / CLOCKS_PER_SEC);
+	system("pause");
+	return count;//返回回答正确的数量
+}
+/**********选择计算方法的菜单*********/
+/*参数1 Title title[]:已经答过的题目数组，记录新生成的题目*/
+/*参数2 int*n : 即数组上次测试答题后的长度*/
+int Style_Menu(Title title[], int n)
+{	
+	int choice;
+	system("cls");
+	if(range == 0)
+	{
+		printf("1:加法\n");
+		printf("2:减法\n");
+		printf("3:三个数加减混合\n");
+		printf("0:返回\n");
+		printf("请输入选项:");
+		scanf("%d", &choice);
+		while (choice < 0 || choice > 3)
+		{
+			printf("请重新输入选项:");
+			scanf("%d", &choice);
+		}
+		ten_choice = choice;			
+	}
+	else if(range == 1)
+	{
+		printf("1:不进位加法\n");
+		printf("2:进位加法\n");
+		printf("3:不退位减法\n");
+		printf("4:退位减法\n");
+		printf("5:三个数加减混合\n");
+		printf("0:返回\n");
+		printf("请输入选项:");
+		scanf("%d", &choice);
+		while (choice < 0 || choice > 5)
+		{
+			printf("请重新输入选项:");
+			scanf("%d", &choice);
+		}
+		twenty_choice = choice;
+	}
+	if(choice == 0) return 0;
+	else return 1;
+}
+/**********选择答题范围的菜单*********/
+/*参数1 Title title[]:已经答过的题目数组，记录新生成的题目*/
+/*参数2 int*n : 即数组上次测试答题后的长度*/
+int Range_Menu(Title title[], int n)
+{
+	int choice;
+	system("cls");
+	printf("1:10以内运算\n");
+	printf("2:20以内运算\n");
+	printf("0:返回\n");
+	printf("请输入选项:");
+	scanf("%d", &choice);
+	if(choice == 0) return 0;
+	while (choice < 0 || choice > 2)
+	{
+		printf("请重新输入选项:");
+		scanf("%d", &choice);
+	}
+	switch(choice)
+	{
+	case 1: range = 0;
+			max_num = 10;			
+			break;
+	case 2: range = 1;
+			max_num = 20;
+			break;
+	}
+	if(Style_Menu(title, n) == 0) return 0;
+	return 1;
+}
+/**********选择答题方式的菜单*********/
+/*参数1 Title title[]:已经答过的题目数组，记录新生成的题目*/
+/*参数2 int*n : 即数组上次测试答题后的长度*/
+/*参数2 int*all : 即数组上次测试答题后回答正确的长度*/
+/*参数3 int*last : 本次答题回答正确的题量*/
+void Start_Menu(Title title[], int* n, int* all, int* last)
+{
+	int choice;
+	system("cls");
+	printf("1:选择题\n");
+	printf("2:填空题\n");
+	printf("0:返回\n");
+	printf("请输入选项:");
+	scanf("%d", &choice);
+	while (choice < 0 || choice>2)
+	{
+		printf("请重新输入选项:");
+		scanf("%d", &choice);
+	}
+	if(choice == 0) return;
+	if(Range_Menu(title, *n) == 0) return;	//选择答题类型
+	switch (choice)//根据选项 进入选择题或填空题
+	{
+	case 1: *last = Start_Choice(title, *n); *all += *last; *n += TITLE_NUM;  break;
+	case 2: *last = Start_Fill(title, *n); *all += *last; *n += TITLE_NUM; break;
+	}
+}
+/**********选择答题方式的菜单*********/
+/*参数1 Title title[]:已经答过的题目数组，记录新生成的题目*/
+/*参数2 int n : 即数组上次测试答题后的长度*/
+/*参数2 int all : 即数组上次测试答题后回答正确的长度*/
+/*参数3 int last : 本次答题回答正确的题量*/
+void Get_State(Title title[], int n, int all, int last)
+{
+	int i;
+	int count = 0;//记录错题数量
+	system("cls");
+	printf("当前总共做:%4d题\n", n);
+	printf("当前共做对:%4d题\n", all);
+	printf("上次共做对:%4d题\n", last);
+	for (i = 0; i < n; i++)
+	{
+		if (title[i].user_ans != title[i].correct_ans)
+			count++;
+	}
+	printf("总错题剩余:%4d题\n", count);
+	system("pause");
+}
+/**********选择答题方式的菜单*********/
+/*参数1 Title title[]:已经答过的题目数组，记录新生成的题目*/
+/*参数2 int n : 即数组上次测试答题后的长度*/
+void Test_Again(Title title[], int n)
+{
+	int i, flag = 0;
+	system("cls");
+	if (n == 0)
+	{
+		printf("当前没有错题\n");
+		system("pause");
+		return;
+	}
+	for (i = n - TITLE_NUM; i < n; i++)//遍历前面一次的错题
+	{
+		if (title[i].correct_ans != title[i].user_ans)//如果该题是错题
+		{
+			flag = 1;
+			if (title[i].style == 0)//选择题
+			{
+				if(title[i].ten_cho == 3 || title[i].twenty_cho == 5)//如果是三个数混合相加
+				{
+					Get_User_Mix_Choice(title, 0, i);
+				}
+				else
+					Get_User_Choice(title, 0, i);
+			}
+			else//填空题
+			{
+				if(title[i].ten_cho == 3 || title[i].twenty_cho == 5)//如果是三个数混合相加
+				{
+					Get_User_Mix_Fill(title,0, i);
+				}
+				else
+					Get_User_Fill(title, 0, i);
+			}
+		}
+	}
+	if (!flag)
+	{
+		printf("当前没有错题\n");
+	}
+	system("pause");
+}
+void Write2Paper_Choice(Title title[], int n, FILE* fp1, FILE* fp2)
+{
+	int i;
+	char ch;
+	for (i = 0; i < n; i++)
+	{
+		if (title[i].opt_ch1 == 0) ch = '+';
+		else ch = '-';
+		fprintf(fp1, "第%d题: %d %c %d = \n", i + 1, title[i].opt_num1, ch, title[i].opt_num2);
+		fprintf(fp2, "第%d题: %d %c %d = %c\n", i + 1, title[i].opt_num1, ch, title[i].opt_num2, title[i].correct_ans + 'A');
+		fprintf(fp1, "A:%d  B:%d  C:%d  D:%d\n\n", title[i].choice[0], title[i].choice[1], title[i].choice[2], title[i].choice[3]);
+		fprintf(fp2, "A:%d  B:%d  C:%d  D:%d\n\n", title[i].choice[0], title[i].choice[1], title[i].choice[2], title[i].choice[3]);
+	}
+}
+void Write2Paper_Fill(Title title[], int n, FILE* fp1, FILE* fp2)
+{
+	int i;
+	char ch;
+	for (i = 0; i < n; i++)
+	{
+		if (title[i].opt_ch1 == 0) ch = '+';
+		else ch = '-';
+		fprintf(fp1, "第%d题: %d %c %d = \n", i + 1, title[i].opt_num1, ch, title[i].opt_num2);
+		fprintf(fp2, "第%d题: %d %c %d = %d\n", i + 1, title[i].opt_num1, ch, title[i].opt_num2, title[i].correct_ans);
+	}
+}
+/********生成试卷菜单*********/
+void Print_Paper_Menu()
+{
+	int choice, i, j;
+	FILE* fp1, * fp2;
+	fp1 = fopen("paper.txt", "w+");//保存试卷
+	fp2 = fopen("ans.txt", "w+");//保存答案
+	Title title[TITLE_NUM];
+	system("cls");//清空屏幕输出
+	printf("1:生成选择题\n");
+	printf("2:生成填空题\n");
+	printf("3:混合生成\n");
+	printf("0:返回\n");
+	printf("请输入选项:");
+	scanf("%d", &choice);//获取选择
+	while (choice < 0 || choice>3)//判断输入的选择是否在0--4之间  不是的话重新输入
+	{
+		printf("请重新输入选项:");
+		scanf("%d", &choice);
+	}
+	switch (choice)
+	{
+	case 1:
+		for (i = 0; i < TITLE_NUM; i++)//循环生成题目 回答题目
+		{
+			Creat_Choice_Title(title, i);//生成题目
+		}
+		Write2Paper_Choice(title, TITLE_NUM, fp1, fp2);
+		break;
+	case 2:
+		for (i = 0; i < TITLE_NUM; i++)//循环生成题目 回答题目
+		{
+			Creat_Fill_Title(title, i);//生成题目
+		}
+		Write2Paper_Fill(title, TITLE_NUM, fp1, fp2);
+		break;
+	case 3:
+		for (i = 0; i < TITLE_NUM / 2; i++)//循环生成题目 回答题目
+		{
+			Creat_Choice_Title(title, i);//生成题目
+		}
+		Write2Paper_Choice(title, TITLE_NUM / 2, fp1, fp2);
+		j = i;
+		for (; i < TITLE_NUM; i++)//循环生成题目 回答题目
+		{
+			Creat_Fill_Title(title, i);//生成题目
+		}
+		Write2Paper_Fill(title + j, TITLE_NUM - TITLE_NUM / 2, fp1, fp2);
+		break;
+	}
+	if (choice != 0)
+	{
+		printf("试卷及答案打印成功！请打开文件查看！\n");
+		system("pause");
+	}
+	fclose(fp1);
+	fclose(fp2);
+}
+/*将所有数据写入到文件*/
+void Save_File(Title title[], int title_count, int correct_count_all, int correct_count_last)
+{
+	FILE* fp = fopen("data.dat", "w+");
+	if (fp == NULL) return;
+
+	fprintf(fp, "%d %d %d\n", title_count, correct_count_all, correct_count_last);
+	fwrite(title, sizeof(Title), title_count, fp);
+	fclose(fp);
+}
+/*将所有数据写入到文件*/
+void Load_File(Title title[], int* title_count, int* correct_count_all, int* correct_count_last)
+{
+	FILE* fp = fopen("data.dat", "r+");
+	if (fp == NULL) return;
+
+	if (fscanf(fp, "%d %d %d\n", title_count, correct_count_all, correct_count_last) != 3)
+	{
+		*title_count = 0;
+		*correct_count_all = 0;
+		*correct_count_last = 0;
+		fclose(fp);
+	}
+	fread(title, sizeof(Title), *title_count, fp);
+	fclose(fp);
+}
+/*********主函数***********/
+int main()
+{
+	int choice;
+	Title title[1000];//题目数组
+	int title_count = 0;//总题目长度
+	int correct_count_all = 0;//总正确
+	int correct_count_last = 0;//上一次正确
+	Load_File(title, &title_count, &correct_count_all, &correct_count_last);
+	srand(time(NULL));//初始化随机数种子
+	do
+	{
+		choice = Main_Menu();
+		switch (choice)
+		{
+		case 1:Start_Menu(title, &title_count, &correct_count_all, &correct_count_last); break;
+		case 2:Get_State(title, title_count, correct_count_all, correct_count_last); break;
+		case 3:Test_Again(title, title_count); break;
+		case 4:Print_Paper_Menu(); break;
+		}
+	} while (choice != 0);
+	Save_File(title, title_count, correct_count_all, correct_count_last);
+	return 0;
+}
